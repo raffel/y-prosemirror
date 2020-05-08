@@ -433,7 +433,11 @@ export const createTextNodesFromYText = (text, schema, mapping, snapshot, prevSn
       const delta = deltas[i]
       const marks = []
       for (const markName in delta.attributes) {
-        marks.push(schema.mark(markName, delta.attributes[markName]))
+        // FIXME workaround for nested coding marks
+        // delta.attributes contains a unique name for each coding mark
+        // ('coding' prefix, followed by unique id)
+        marks.push(schema.mark(markName.startsWith('coding') ? 'coding' : markName,
+          delta.attributes[markName]))
       }
       nodes.push(schema.text(delta.insert, marks))
     }
@@ -641,7 +645,12 @@ const updateYText = (ytext, ptexts, mapping) => {
 const marksToAttributes = marks => {
   const pattrs = {}
   marks.forEach(mark => {
-    if (mark.type.name !== 'ychange') {
+    if (mark.type.name === 'coding') {
+      // FIXME coding marks can be nested, so we need a unique attribute name here
+      const key = `coding-${mark.attrs['data-coding-id']}`
+      pattrs[key] = mark.attrs
+    }
+    else if (mark.type.name !== 'ychange') {
       pattrs[mark.type.name] = mark.attrs
     }
   })
