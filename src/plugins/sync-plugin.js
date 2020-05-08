@@ -649,8 +649,7 @@ const marksToAttributes = marks => {
       // FIXME coding marks can be nested, so we need a unique attribute name here
       const key = `coding-${mark.attrs['data-coding-id']}`
       pattrs[key] = mark.attrs
-    }
-    else if (mark.type.name !== 'ychange') {
+    } else if (mark.type.name !== 'ychange') {
       pattrs[mark.type.name] = mark.attrs
     }
   })
