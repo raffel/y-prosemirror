@@ -37,7 +37,7 @@ export const defaultCursorBuilder = user => {
  * @param {Awareness} awareness
  * @return {any} DecorationSet
  */
-export const createDecorations = (state, awareness, createCursor) => {
+export const createDecorations = (state, awareness, id, createCursor) => {
   const ystate = ySyncPluginKey.getState(state)
   const y = ystate.doc
   const decorations = []
@@ -49,7 +49,8 @@ export const createDecorations = (state, awareness, createCursor) => {
     if (clientId === y.clientID) {
       return
     }
-    if (aw.cursor != null) {
+    const cursor = `cursor-${id}`
+    if (aw[cursor] != null) {
       const user = aw.user || {}
       if (user.color == null) {
         user.color = '#ffa500'
@@ -57,8 +58,8 @@ export const createDecorations = (state, awareness, createCursor) => {
       if (user.name == null) {
         user.name = `User: ${clientId}`
       }
-      let anchor = relativePositionToAbsolutePosition(y, ystate.type, Y.createRelativePositionFromJSON(aw.cursor.anchor), ystate.binding.mapping)
-      let head = relativePositionToAbsolutePosition(y, ystate.type, Y.createRelativePositionFromJSON(aw.cursor.head), ystate.binding.mapping)
+      let anchor = relativePositionToAbsolutePosition(y, ystate.type, Y.createRelativePositionFromJSON(aw[cursor].anchor), ystate.binding.mapping)
+      let head = relativePositionToAbsolutePosition(y, ystate.type, Y.createRelativePositionFromJSON(aw[cursor].head), ystate.binding.mapping)
       if (anchor !== null && head !== null) {
         const maxsize = math.max(state.doc.content.size - 1, 0)
         anchor = math.min(anchor, maxsize)
@@ -79,21 +80,22 @@ export const createDecorations = (state, awareness, createCursor) => {
  *
  * @public
  * @param {Awareness} awareness
+ * @param {Document ID} id
  * @param {object} [opts]
  * @param {function(any):HTMLElement} [opts.cursorBuilder]
  * @return {any}
  */
-export const yCursorPlugin = (awareness, { cursorBuilder = defaultCursorBuilder } = {}) => new Plugin({
+export const yCursorPlugin = (awareness, id, { cursorBuilder = defaultCursorBuilder } = {}) => new Plugin({
   key: yCursorPluginKey,
   state: {
     init (_, state) {
-      return createDecorations(state, awareness, cursorBuilder)
+      return createDecorations(state, awareness, id, cursorBuilder)
     },
     apply (tr, prevState, oldState, newState) {
       const ystate = ySyncPluginKey.getState(newState)
       const yCursorState = tr.getMeta(yCursorPluginKey)
       if ((ystate && ystate.isChangeOrigin) || (yCursorState && yCursorState.awarenessUpdated)) {
-        return createDecorations(newState, awareness, cursorBuilder)
+        return createDecorations(newState, awareness, id, cursorBuilder)
       }
       return prevState.map(tr.mapping, tr.doc)
     }
@@ -126,12 +128,12 @@ export const yCursorPlugin = (awareness, { cursorBuilder = defaultCursorBuilder 
          */
         const head = absolutePositionToRelativePosition(view.state.selection.head, ystate.type, ystate.binding.mapping)
         if (current.cursor == null || !Y.compareRelativePositions(Y.createRelativePositionFromJSON(current.cursor.anchor), anchor) || !Y.compareRelativePositions(Y.createRelativePositionFromJSON(current.cursor.head), head)) {
-          awareness.setLocalStateField('cursor', {
+          awareness.setLocalStateField(`cursor-${id}`, {
             anchor, head
           })
         }
       } else if (current.cursor != null) {
-        awareness.setLocalStateField('cursor', null)
+        awareness.setLocalStateField(`cursor-${id}`, null)
       }
     }
     awareness.on('change', awarenessListener)
@@ -141,7 +143,7 @@ export const yCursorPlugin = (awareness, { cursorBuilder = defaultCursorBuilder 
       update: updateCursorInfo,
       destroy: () => {
         awareness.off('change', awarenessListener)
-        awareness.setLocalStateField('cursor', null)
+        awareness.setLocalStateField(`cursor-${id}`, null)
       }
     }
   }
