@@ -92,6 +92,7 @@ export const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping
         return {
           type: yXmlFragment,
           doc: yXmlFragment.doc,
+          init: false,
           binding: null,
           snapshot: null,
           prevSnapshot: null,
@@ -135,8 +136,12 @@ export const ySyncPlugin = (yXmlFragment, { colors = defaultColors, colorMapping
       const binding = new ProsemirrorBinding(yXmlFragment, view)
       // Make sure this is called in a separate context
       setTimeout(() => {
-        binding._forceRerender()
-        view.dispatch(view.state.tr.setMeta(ySyncPluginKey, { binding }))
+        const pluginState = plugin.getState(view.state)
+        if (!pluginState.init) {
+          pluginState.init = true
+          binding._forceRerender()
+          view.dispatch(view.state.tr.setMeta(ySyncPluginKey, { binding }))
+        }
       }, 0)
       return {
         update: () => {
